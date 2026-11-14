@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If you use this dataset, please cite it as below, and state that the drag area is a protocol estimate."
+title: "WorldTour-Grade Road Bicycle Telemetry Dataset"
+abstract: "Deterministic power and climbing telemetry for 28 high-end road bicycles, computed with a closed-form cycling power model under a fixed rider protocol. Drag area is a declared estimate (0.260 m2), not a measurement."
+authors:
+  - name: "TheAeroDrop Engineering Lab"
+    website: "https://theaerodrop.com"
+date-released: "2026-11-14"
+license: MIT
+url: "https://theaerodrop.com"
+repository-code: "https://github.com/ketuto/worldtour-telemetry-dataset"
