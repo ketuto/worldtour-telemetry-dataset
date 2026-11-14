@@ -1,0 +1,59 @@
+name: Sync dataset from the source
+
+# El repositorio no genera el dato: lo copia de su fuente canónica.
+#
+# theaerodrop.com/dataset.csv se calcula en cada petición con el mismo módulo que
+# renderiza las fichas, así que siempre refleja precios y especificaciones del
+# día. Esta acción solo lo trae aquí y hace commit si cambió algo, para que el
+# repositorio no se quede contando una versión vieja de los hechos.
+#
+# Sin secretos: la descarga es pública y el push usa el token del propio runner.
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # lunes 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Traer el dataset publicado
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 3 --max-time 60 \
+            https://theaerodrop.com/dataset.csv -o dataset.csv
+          curl -fsSL --retry 3 --max-time 60 \
+            https://theaerodrop.com/dataset.json -o dataset.json
+          curl -fsSL --retry 3 --max-time 60 \
+            https://theaerodrop.com/dataset.jsonl -o dataset.jsonl
+          curl -fsSL --retry 3 --max-time 60 \
+            https://theaerodrop.com/datapackage.json -o datapackage.json
+
+      - name: Comprobar que trae filas
+        run: |
+          set -euo pipefail
+          filas=$(($(wc -l < dataset.csv) - 1))
+          echo "filas: $filas"
+          if [ "$filas" -lt 10 ]; then
+            echo "El CSV trae $filas filas: se aborta para no sustituir el dato bueno por una respuesta vacía."
+            exit 1
+          fi
+
+      - name: Commit si hay cambios
+        run: |
+          set -euo pipefail
+          git config user.name "TheAeroDrop dataset bot"
+          git config user.email "reserve@theaerodrop.com"
+          if git diff --quiet -- dataset.csv dataset.json dataset.jsonl datapackage.json; then
+            echo "Sin cambios."
+            exit 0
+          fi
+          git add dataset.csv dataset.json dataset.jsonl datapackage.json
+          git commit -m "data: sync from theaerodrop.com ($(date -u +%Y-%m-%d))"
+          git push
